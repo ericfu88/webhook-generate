@@ -4,6 +4,7 @@ var _ = require('lodash');
 var utils = require('./utils.js');
 var marked = require('marked');
 var dateFormatter = require('./dateformatter.js');
+var safeJsonStringify = require('safe-json-stringify');
 
 if (typeof String.prototype.startsWith != 'function') {
   String.prototype.startsWith = function (str){
@@ -26,6 +27,9 @@ module.exports.init = function (swig) {
   var siteDns = '';
   var firebaseConf = {};
   var typeInfo = {};
+
+  // used to expand any relations in the jsonX filter
+  var swig_functions;
 
   var upper = function(input) {
     return input.toUpperCase();
@@ -305,6 +309,10 @@ module.exports.init = function (swig) {
     firebaseConf = conf;
   }
 
+  this.setSwigFunctions = function(swig_funcs) {
+    swig_functions = swig_funcs;
+  };
+
   var date = function(input, format, offset, abbr) {
     var l = format.length,
       date = new dateFormatter.DateZ(input),
@@ -557,6 +565,55 @@ module.exports.init = function (swig) {
     return value;
   }
 
+  var jsonExpander = function(key, value) {
+    if(!key) {
+      return value;
+    }
+
+    if(!value) {
+      return value;
+    }
+
+    if(!this._type) {
+      return value;
+    }
+
+    var info = typeInfo[this._type] || {};
+    var controls = info.controls || {};
+    var controlCandidates = _.where(controls, { name: key });
+
+    if(controlCandidates.length === 0) {
+      return value;
+    }
+
+    var control = controlCandidates[0];
+
+    if(control.controlType === 'relation') {
+      var str = '';
+      if(Array.isArray(value)) {
+        str = [];
+        value.forEach(function(val) {
+
+          if (swig_functions) {
+            if(val._id) {
+              var item = swig_functions.getFunctions().getItem(val._type, val._id, true);
+              str.push(item);
+            }
+          }
+        })
+      } else {
+        if(value._id) {
+          var item = swig_functions.getFunctions().getItem(value._type, value._id, true);
+          return item;
+        }
+      }
+      return str;
+    }
+
+    return value;
+  }
+
+
   var json = function(input) {
     return JSON.stringify(input, jsonFixer);
   }
@@ -566,6 +623,10 @@ module.exports.init = function (swig) {
       callbackName = 'callback';
     }
     return '/**/' + callbackName +  '(' + JSON.stringify(input, jsonFixer) + ')';
+  };
+
+  var jsonX = function(input) {
+    return safeJsonStringify(input, jsonExpander);
   };
 
   var pluralize = function(input, singular, suffix) {
@@ -614,6 +675,7 @@ module.exports.init = function (swig) {
   linebreaks.safe = true;
   jsonP.safe = true;
   json.safe = true;
+  jsonX.safe = true;
 
   swig.setFilter('upper', upper);
   swig.setFilter('slice', slice);
@@ -636,6 +698,7 @@ module.exports.init = function (swig) {
   swig.setFilter('linebreaks', linebreaks);
   swig.setFilter('pluralize', pluralize);
   swig.setFilter('jsonp', jsonP);
+  swig.setFilter('jsonX', jsonX);
   swig.setFilter('json', json);
   swig.setFilter('imgAltClass',imgAltClass);
 };

@@ -144,7 +144,7 @@ module.exports.generator = function (config, options, logger, fileParser) {
       swigFilters.setSiteDns(self.cachedData.siteDns);
       swigFilters.setFirebaseConf(config.get('webhook'));
       swigFilters.setTypeInfo(self.cachedData.typeInfo);
-
+      swigFilters.setSwigFunctions(swigFunctions);
       callback(self.cachedData.data, self.cachedData.typeInfo);
       return;
     }
@@ -196,7 +196,7 @@ module.exports.generator = function (config, options, logger, fileParser) {
         self.cachedData.siteDns = siteDns;
         swigFilters.setSiteDns(siteDns);
         swigFilters.setFirebaseConf(config.get('webhook'));
-
+        swigFilters.setSwigFunctions(swigFunctions);
         callback(data, typeInfo);
       });
     }, function(error) {
