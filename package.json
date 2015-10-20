@@ -44,6 +44,6 @@
     "grunt-connect-proxy": "~0.2",
     "nodejs-websocket": "~1.2.0",
     "grunt-simple-watch": "~0.1.2",
-    "safe-json-stringify": "^1.0.3",
+    "safe-json-stringify": "^1.0.3"
   }
 }
